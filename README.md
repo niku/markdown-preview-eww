@@ -2,6 +2,8 @@
 
 Realtime preview by eww.
 
+![realtime-preview.gif](image/realtime-preview.gif)
+
 ## How to use
 
 install redcarpet from gem `% gem install redcarpet`

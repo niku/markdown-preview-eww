@@ -43,5 +43,5 @@ end
               nil
               t)))
 
-(provide 'realtime-preview.el)
+(provide 'realtime-preview)
 ;;; realtime-preview.el ends here

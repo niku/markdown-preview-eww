@@ -51,6 +51,7 @@ while doc = gets(\"\\0\")
 end
 " output-file-name))
 
+;;;### autoload
 (defun realtime-preview ()
   "Start realtime preview."
   (interactive)

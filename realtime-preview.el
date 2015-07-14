@@ -51,6 +51,13 @@ while doc = gets(\"\\0\")
 end
 " output-file-name))
 
+(defun realtime-preview--do-convert (beginning ending length)
+  (let ((doc (buffer-substring-no-properties (point-min) (point-max)))
+        (cb (current-buffer)))
+    (process-send-string realtime-preview-process-name (concat doc "\0"))
+    (eww-open-file realtime-preview-output-file-name)
+    (switch-to-buffer cb)))
+
 ;;;### autoload
 (defun realtime-preview ()
   "Start realtime preview."
@@ -58,15 +65,7 @@ end
   (let ((process-connection-type nil)
         (convert-command (realtime-preview-convert-command realtime-preview-output-file-name)))
     (start-process realtime-preview-process-name nil "ruby" "-e" convert-command)
-    (add-hook 'after-change-functions
-              '(lambda (beginning ending length)
-                 (let ((doc (buffer-substring-no-properties (point-min) (point-max)))
-                       (cb (current-buffer)))
-                   (process-send-string realtime-preview-process-name (concat doc "\0"))
-                   (eww-open-file realtime-preview-output-file-name)
-                   (switch-to-buffer cb)))
-              nil
-              t)))
+    (add-hook 'after-change-functions 'realtime-preview--do-convert nil t)))
 
 (provide 'realtime-preview)
 ;;; realtime-preview.el ends here

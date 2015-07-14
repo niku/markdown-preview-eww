@@ -41,6 +41,9 @@
 (defvar realtime-preview-output-file-name "realtime-preview-result.html"
   "Filename of converted html.")
 
+(defvar realtime-preview-waiting-idling-second 1
+  "Seconds of convert waiting")
+
 (defun realtime-preview-convert-command (output-file-name)
   (format "require \"redcarpet\"
 
@@ -51,7 +54,7 @@ while doc = gets(\"\\0\")
 end
 " output-file-name))
 
-(defun realtime-preview--do-convert (beginning ending length)
+(defun realtime-preview--do-convert ()
   (let ((doc (buffer-substring-no-properties (point-min) (point-max)))
         (cb (current-buffer)))
     (process-send-string realtime-preview-process-name (concat doc "\0"))
@@ -65,7 +68,7 @@ end
   (let ((process-connection-type nil)
         (convert-command (realtime-preview-convert-command realtime-preview-output-file-name)))
     (start-process realtime-preview-process-name nil "ruby" "-e" convert-command)
-    (add-hook 'after-change-functions 'realtime-preview--do-convert nil t)))
+    (run-with-idle-timer realtime-preview-waiting-idling-second nil 'realtime-preview--do-convert)))
 
 (provide 'realtime-preview)
 ;;; realtime-preview.el ends here

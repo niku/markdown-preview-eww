@@ -1,9 +1,9 @@
-;;; realtime-preview.el --- Realtime preview by eww -*- lexical-binding: t; -*-
+;;; markdown-preview-eww.el --- Realtime preview by eww -*- lexical-binding: t; -*-
 
 ;; Copyright (c) 2014 niku
 
 ;; Author: niku <niku@niku.name>
-;; URL: https://github.com/niku/realtime-preview
+;; URL: https://github.com/niku/markdown-preview-eww
 ;; Version: 0.0.1
 ;; Package-Requires: ((emacs "24.4"))
 
@@ -31,20 +31,20 @@
 
 ;;; Commentary:
 
-;; This package provides the realtime preview by eww.
+;; This package provides the realtime markdown preview by eww.
 
 ;;; Code:
 
-(defvar realtime-preview-process-name "convert-from-md-to-html"
+(defvar markdown-preview-eww-process-name "convert-from-md-to-html"
   "Process name of a converter.")
 
-(defvar realtime-preview-output-file-name "realtime-preview-result.html"
+(defvar markdown-preview-eww-output-file-name "markdown-preview-eww-result.html"
   "Filename of converted html.")
 
-(defvar realtime-preview-waiting-idling-second 1
+(defvar markdown-preview-eww-waiting-idling-second 1
   "Seconds of convert waiting")
 
-(defun realtime-preview-convert-command (output-file-name)
+(defun markdown-preview-eww-convert-command (output-file-name)
   (format "require \"redcarpet\"
 
 markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
@@ -54,21 +54,21 @@ while doc = gets(\"\\0\")
 end
 " output-file-name))
 
-(defun realtime-preview--do-convert ()
+(defun markdown-preview-eww--do-convert ()
   (let ((doc (buffer-substring-no-properties (point-min) (point-max)))
         (cb (current-buffer)))
-    (process-send-string realtime-preview-process-name (concat doc "\0"))
-    (eww-open-file realtime-preview-output-file-name)
+    (process-send-string markdown-preview-eww-process-name (concat doc "\0"))
+    (eww-open-file markdown-preview-eww-output-file-name)
     (switch-to-buffer cb)))
 
 ;;;### autoload
-(defun realtime-preview ()
-  "Start realtime preview."
+(defun markdown-preview-eww ()
+  "Start a realtime markdown preview."
   (interactive)
   (let ((process-connection-type nil)
-        (convert-command (realtime-preview-convert-command realtime-preview-output-file-name)))
-    (start-process realtime-preview-process-name nil "ruby" "-e" convert-command)
-    (run-with-idle-timer realtime-preview-waiting-idling-second nil 'realtime-preview--do-convert)))
+        (convert-command (markdown-preview-eww-convert-command markdown-preview-eww-output-file-name)))
+    (start-process markdown-preview-eww-process-name nil "ruby" "-e" convert-command)
+    (run-with-idle-timer markdown-preview-eww-waiting-idling-second nil 'markdown-preview-eww--do-convert)))
 
-(provide 'realtime-preview)
-;;; realtime-preview.el ends here
+(provide 'markdown-preview-eww)
+;;; markdown-preview-eww.el ends here

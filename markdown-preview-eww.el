@@ -1,6 +1,6 @@
 ;;; markdown-preview-eww.el --- Realtime preview by eww -*- lexical-binding: t; -*-
 
-;; Copyright (c) 2014 niku
+;; Copyright (c) 2014, 2015, 2016 niku
 
 ;; Author: niku <niku@niku.name>
 ;; URL: https://github.com/niku/markdown-preview-eww

@@ -4,7 +4,7 @@
 
 ;; Author: niku <niku@niku.name>
 ;; URL: https://github.com/niku/realtime-preview
-;; Version 0.0.1
+;; Version: 0.0.1
 ;; Package-Requires: ((emacs "24.4"))
 
 

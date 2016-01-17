@@ -42,9 +42,10 @@
   "Filename of converted html.")
 
 (defvar markdown-preview-eww-waiting-idling-second 1
-  "Seconds of convert waiting")
+  "Seconds of convert waiting.")
 
 (defun markdown-preview-eww-convert-command (output-file-name)
+  ""
   (format "require \"redcarpet\"
 
 markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
@@ -55,6 +56,7 @@ end
 " output-file-name))
 
 (defun markdown-preview-eww--do-convert ()
+  ""
   (let ((doc (buffer-substring-no-properties (point-min) (point-max)))
         (cb (current-buffer)))
     (process-send-string markdown-preview-eww-process-name (concat doc "\0"))

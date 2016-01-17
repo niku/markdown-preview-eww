@@ -44,6 +44,23 @@
 (defvar markdown-preview-eww-waiting-idling-second 1
   "Seconds of convert waiting.")
 
+(defcustom markdown-preview-eww-major-mode-default-dialect
+  'markdown
+  "Default Markdown dialect.
+
+markdown: processor own default dialect
+commonmark: CommonMark standard
+markdown_strict: Original (markdown.pl)
+markdown_phpextra: PHP Markdown Extra syntax
+markdown_github: GFM (GitHub Flavored Markdown)
+markdown_mmd: MultiMarkdown syntax"
+  :type '(options 'markdown 'commonmark 'markdown_strict 'markdown_phpextra 'markdown_github 'markdown_mmd))
+
+(defcustom markdown-preview-eww-major-mode-dialect-alist
+  (list '(markdown-mode . nil)
+        '(gfm-mode . markdown_github))
+  "Alist of markdown dialect by MAJOR-MODE.")
+
 (defun markdown-preview-eww-convert-command (output-file-name)
   ""
   (format "require \"redcarpet\"

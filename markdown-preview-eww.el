@@ -65,7 +65,7 @@ markdown_mmd: MultiMarkdown syntax"
         '(gfm-mode . markdown_github))
   "Alist of markdown dialect by MAJOR-MODE.")
 
-(defun markdown-preview-eww-detect-convert-command (output-file-name)
+(defun markdown-preview-eww-convert-command (output-file-name)
   "Return commandline argument by `OUTPUT-FILE-NAME'."
   (let ((command-function (or markdown-preview-eww-convert-command
                               'markdown-preview-eww-convert-command-redcarpet)))
@@ -76,9 +76,9 @@ markdown_mmd: MultiMarkdown syntax"
 (defun markdown-preview-eww-convert-command-redcarpet (output-file-name)
   "Return ruby-redcarpet commandline argument to convert markdown by `OUTPUT-FILE-NAME'."
   (list
-   "ruby" "-e"
-   (format "require \"redcarpet\"
-
+   "ruby" "-r" "redcarpet"
+   "-e"
+   (format "
 markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
 while doc = gets(\"\\0\")
   doc.chomp!(\"\\0\")
@@ -89,6 +89,16 @@ end
 (defun markdown-preview-eww-convert-command-pandoc (output-file-name)
   "Return pandoc commandline argument to convert markdown by `OUTPUT-FILE-NAME'."
   (list
+   "ruby" "-r" "open3"
+   "-e"
+   "
+command_args = Shellwords.shelljoin ARGV
+
+while doc = gets(\"\\0\")
+  doc.chomp!(\"\\0\")
+  Open3.capture3(command_args, stdin_data: doc)
+end
+"
    "pandoc"
    "-f" (symbol-name (markdown-preview-eww-dialect))
    "-t" "html"

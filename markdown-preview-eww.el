@@ -44,6 +44,10 @@
 (defvar markdown-preview-eww-waiting-idling-second 1
   "Seconds of convert waiting.")
 
+(defcustom markdown-preview-eww-convert-command
+  nil
+  "Symbol of markdown convert function.")
+
 (defcustom markdown-preview-eww-major-mode-default-dialect
   'markdown
   "Default Markdown dialect.
@@ -61,16 +65,39 @@ markdown_mmd: MultiMarkdown syntax"
         '(gfm-mode . markdown_github))
   "Alist of markdown dialect by MAJOR-MODE.")
 
-(defun markdown-preview-eww-convert-command (output-file-name)
-  ""
-  (format "require \"redcarpet\"
+(defun markdown-preview-eww-detect-convert-command (output-file-name)
+  "Return commandline argument by `OUTPUT-FILE-NAME'."
+  (let ((command-function (or markdown-preview-eww-convert-command
+                              'markdown-preview-eww-convert-command-redcarpet)))
+    (unless markdown-preview-eww-convert-command
+      (setq-local markdown-preview-eww-convert-command command-function))
+    (funcall command-function output-file-name)))
+
+(defun markdown-preview-eww-convert-command-redcarpet (output-file-name)
+  "Return ruby-redcarpet commandline argument to convert markdown by `OUTPUT-FILE-NAME'."
+  (list
+   "ruby" "-e"
+   (format "require \"redcarpet\"
 
 markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
 while doc = gets(\"\\0\")
   doc.chomp!(\"\\0\")
   File.write(\"%s\", markdown.render(doc))
 end
-" output-file-name))
+" output-file-name)))
+
+(defun markdown-preview-eww-convert-command-pandoc (output-file-name)
+  "Return pandoc commandline argument to convert markdown by `OUTPUT-FILE-NAME'."
+  (list
+   "pandoc"
+   "-f" (symbol-name (markdown-preview-eww-dialect))
+   "-t" "html"
+   "-o" output-file-name))
+
+(defun markdown-preview-eww-dialect ()
+  "Return markdown-dialect symbol by MAJOR-MODE."
+  (or (cdr-safe (assq major-mode markdown-preview-eww-major-mode-dialect-alist))
+      markdown-preview-eww-major-mode-default-dialect))
 
 (defun markdown-preview-eww--do-convert ()
   ""
@@ -85,8 +112,8 @@ end
   "Start a realtime markdown preview."
   (interactive)
   (let ((process-connection-type nil)
-        (convert-command (markdown-preview-eww-convert-command markdown-preview-eww-output-file-name)))
-    (start-process markdown-preview-eww-process-name nil "ruby" "-e" convert-command)
+        (convert-command-args (markdown-preview-eww-convert-command markdown-preview-eww-output-file-name)))
+    (apply 'start-process markdown-preview-eww-process-name nil convert-command-args)
     (run-with-idle-timer markdown-preview-eww-waiting-idling-second nil 'markdown-preview-eww--do-convert)))
 
 (provide 'markdown-preview-eww)

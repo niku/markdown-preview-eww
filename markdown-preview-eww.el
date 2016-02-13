@@ -46,7 +46,9 @@
 
 (defcustom markdown-preview-eww-convert-command
   nil
-  "Symbol of markdown convert function.")
+  "Symbol of markdown convert function."
+  :group 'markdown-preview-eww
+  :type 'function)
 
 (defcustom markdown-preview-eww-major-mode-default-dialect
   'markdown
@@ -58,12 +60,14 @@ markdown_strict: Original (markdown.pl)
 markdown_phpextra: PHP Markdown Extra syntax
 markdown_github: GFM (GitHub Flavored Markdown)
 markdown_mmd: MultiMarkdown syntax"
+  :group 'markdown-preview-eww
   :type '(options 'markdown 'commonmark 'markdown_strict 'markdown_phpextra 'markdown_github 'markdown_mmd))
 
 (defcustom markdown-preview-eww-major-mode-dialect-alist
   (list '(markdown-mode . nil)
         '(gfm-mode . markdown_github))
-  "Alist of markdown dialect by MAJOR-MODE.")
+  "Alist of markdown dialect by MAJOR-MODE."
+  :group 'markdown-preview-eww)
 
 (defun markdown-preview-eww-convert-command (output-file-name)
   "Return commandline argument by `OUTPUT-FILE-NAME'."

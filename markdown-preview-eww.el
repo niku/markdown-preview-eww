@@ -34,12 +34,7 @@
 ;; This package provides the realtime markdown preview by eww.
 
 ;;; Code:
-
-(defvar markdown-preview-eww-process-name "convert-from-md-to-html"
-  "Process name of a converter.")
-
-(defvar markdown-preview-eww-output-file-name "markdown-preview-eww-result.html"
-  "Filename of converted html.")
+(require 'cl-lib)
 
 (defvar markdown-preview-eww-waiting-idling-second 1
   "Seconds of convert waiting.")
@@ -69,66 +64,82 @@ markdown_mmd: MultiMarkdown syntax"
   "Alist of markdown dialect by MAJOR-MODE."
   :group 'markdown-preview-eww)
 
+(defcustom markdown-preview-eww-tmp-file-prefix
+  "markdown-preview-eww_"
+  "Prefix for generating preview HTML file."
+  :group 'markdown-preview-eww)
+
 (defun markdown-preview-eww-convert-command (output-file-name)
   "Return commandline argument by `OUTPUT-FILE-NAME'."
-  (let ((command-function (or markdown-preview-eww-convert-command
-                              'markdown-preview-eww-convert-command-redcarpet)))
-    (unless markdown-preview-eww-convert-command
-      (setq-local markdown-preview-eww-convert-command command-function))
+  (let ((command-function
+         (or markdown-preview-eww-convert-command
+             (if (executable-find "pandoc")
+                 'markdown-preview-eww-convert-command-pandoc
+               'markdown-preview-eww-convert-command-redcarpet))))
     (funcall command-function output-file-name)))
 
 (defun markdown-preview-eww-convert-command-redcarpet (output-file-name)
   "Return ruby-redcarpet commandline argument to convert markdown by `OUTPUT-FILE-NAME'."
-  (list
-   "ruby" "-r" "redcarpet"
-   "-e"
-   (format "
+  (cl-values
+   "ruby"
+   (list
+    "-r" "redcarpet"
+    "-e"
+    (format "
 markdown = Redcarpet::Markdown.new(Redcarpet::Render::HTML)
-while doc = gets(\"\\0\")
-  doc.chomp!(\"\\0\")
-  File.write(\"%s\", markdown.render(doc))
-end
-" output-file-name)))
+doc = STDIN.read
+File.write(\"%s\", markdown.render(doc))
+" output-file-name))))
 
 (defun markdown-preview-eww-convert-command-pandoc (output-file-name)
   "Return pandoc commandline argument to convert markdown by `OUTPUT-FILE-NAME'."
-  (list
-   "ruby" "-r" "open3"
-   "-e"
-   "
-command_args = Shellwords.shelljoin ARGV
-
-while doc = gets(\"\\0\")
-  doc.chomp!(\"\\0\")
-  Open3.capture3(command_args, stdin_data: doc)
-end
-"
+  (cl-values
    "pandoc"
-   "-f" (symbol-name (markdown-preview-eww-dialect))
-   "-t" "html"
-   "-o" output-file-name))
+   (list
+    "-f" (symbol-name (markdown-preview-eww-dialect))
+    "-t" "html"
+    "-o" output-file-name)))
 
 (defun markdown-preview-eww-dialect ()
   "Return markdown-dialect symbol by MAJOR-MODE."
   (or (cdr-safe (assq major-mode markdown-preview-eww-major-mode-dialect-alist))
       markdown-preview-eww-major-mode-default-dialect))
 
-(defun markdown-preview-eww--do-convert ()
-  ""
-  (let ((doc (buffer-substring-no-properties (point-min) (point-max)))
-        (cb (current-buffer)))
-    (process-send-string markdown-preview-eww-process-name (concat doc "\0"))
-    (eww-open-file markdown-preview-eww-output-file-name)
-    (switch-to-buffer cb)))
+(defun markdown-preview--tmp-file (buffer-name)
+  "Return tmporary file name by BUFFER-NAME."
+  (concat temporary-file-directory markdown-preview-eww-tmp-file-prefix buffer-name ".html"))
+
+(defun markdown-preview-eww--make-converter ()
+  "Return closure for convert markdown and open eww buffer."
+  (let ((doc-buffer (current-buffer))
+        (output-buffer (concat "*markdown-preview-eww " (buffer-name) "*"))
+        (preview-temp-file (markdown-preview--tmp-file (buffer-name))))
+    (cl-multiple-value-bind (command args)
+        (markdown-preview-eww-convert-command preview-temp-file)
+      (lambda ()
+        (when (eq doc-buffer (current-buffer))
+          (apply 'call-process-region (point-max) (point-min) command nil output-buffer nil args)
+          (if (not (file-readable-p preview-temp-file))
+              (error "File not exists")
+            (eww-open-file preview-temp-file)
+            (switch-to-buffer doc-buffer)))))))
+
+(defun markdown-preview-eww-disable ()
+  "Disable realtime preview for current buffer."
+  (interactive)
+  (when (and (boundp 'markdown-prewiew--timer) markdown-prewiew--timer)
+    (cancel-timer markdown-prewiew--timer)
+    (setq markdown-prewiew--timer nil)))
 
 ;;;### autoload
 (defun markdown-preview-eww ()
   "Start a realtime markdown preview."
   (interactive)
-  (let ((process-connection-type nil)
-        (convert-command-args (markdown-preview-eww-convert-command markdown-preview-eww-output-file-name)))
-    (apply 'start-process markdown-preview-eww-process-name nil convert-command-args)
-    (run-with-idle-timer markdown-preview-eww-waiting-idling-second nil 'markdown-preview-eww--do-convert)))
+  (markdown-preview-eww-disable)
+  (setq-local
+   markdown-prewiew--timer
+   (run-with-idle-timer markdown-preview-eww-waiting-idling-second t
+                        (markdown-preview-eww--make-converter))))
 
 (provide 'markdown-preview-eww)
 ;;; markdown-preview-eww.el ends here

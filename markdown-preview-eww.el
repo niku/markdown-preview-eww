@@ -60,7 +60,12 @@ markdown_mmd: MultiMarkdown syntax"
 
 (defcustom markdown-preview-eww-major-mode-dialect-alist
   (list '(markdown-mode . nil)
-        '(gfm-mode . markdown_github))
+        '(gfm-mode . markdown_github)
+        '(asciidoc-mode . asciidoc)
+        '(org-mode . org)
+        '(rst-mode . rst)
+        '(texinfo-mode . texinfo)
+        '(textile-mode . textile))
   "Alist of markdown dialect by MAJOR-MODE."
   :group 'markdown-preview-eww)
 

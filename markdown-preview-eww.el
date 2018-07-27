@@ -54,21 +54,85 @@ while doc = gets(\"\\0\")
 end
 " output-file-name))
 
+(defvar-local markdown-preview-eww--timer nil
+  "Idle timer used for markdown preview process.")
+
+(defvar-local markdown-preview-eww--process nil
+  "Markdown preview process.
+
+This is buffer local because different buffers' processes might
+write to different output files.")
+
+(defvar-local markdown-preview-eww--buffer nil
+  "eww buffer to use for markdown preview")
+
 (defun markdown-preview-eww--do-convert ()
-  (let ((doc (buffer-substring-no-properties (point-min) (point-max)))
-        (cb (current-buffer)))
-    (process-send-string markdown-preview-eww-process-name (concat doc "\0"))
-    (eww-open-file markdown-preview-eww-output-file-name)
-    (switch-to-buffer cb)))
+  (when markdown-preview-eww--process
+    (process-send-string markdown-preview-eww--process
+                         (concat (buffer-substring-no-properties
+                                  (point-min) (point-max)) "\0"))
+    (let ((eww-buffer (or markdown-preview-eww--buffer
+                          (get-buffer "*eww*"))))
+      ;; The with-selected-window form makes sure that we get back to
+      ;; our actual window after eww-open-file has run.
+      (with-selected-window (selected-window)
+        (if eww-buffer
+            ;; If there is already a candidate eww buffer, make sure
+            ;; it's visible and set the current window to it. This
+            ;; means that calling eww-open-file won't open on top of
+            ;; the user's main window.
+            (pop-to-buffer eww-buffer nil t)
+
+          ;; Otherwise, switch to another window. If there is no other
+          ;; window in the frame, try to make one by splitting this
+          ;; one.
+          (let ((other (or (other-window 1)
+                           (split-window-sensibly))))
+            ;; Assuming we ended up with a new window (which will be
+            ;; true unless this is a really teensy frame), switch to
+            ;; it.
+            (select-window other nil)))
+
+        ;; Display the preview in eww. This force-opens eww in the
+        ;; current window, but we should have made a nice space for
+        ;; that already.
+        (eww-open-file markdown-preview-eww-output-file-name)
+
+        ;; Finally, take a note of the eww buffer. When
+        ;; with-selected-window returns (restoring us to the original
+        ;; buffer), we can use this to set
+        ;; markdown-preview-eww--buffer.
+        (when (eq major-mode 'eww-mode)
+          (setq eww-buffer (current-buffer))))
+
+      (when eww-buffer
+        (setq-local markdown-preview-eww--buffer eww-buffer)))))
 
 ;;;### autoload
 (defun markdown-preview-eww ()
-  "Start a realtime markdown preview."
+  "Start or stop continuous markdown preview."
   (interactive)
-  (let ((process-connection-type nil)
-        (convert-command (markdown-preview-eww-convert-command markdown-preview-eww-output-file-name)))
-    (start-process markdown-preview-eww-process-name nil "ruby" "-e" convert-command)
-    (run-with-idle-timer markdown-preview-eww-waiting-idling-second nil 'markdown-preview-eww--do-convert)))
+  (if markdown-preview-eww--timer
+      (progn
+        (message "Disabling eww markdown preview")
+        (cancel-timer markdown-preview-eww--timer)
+        (when markdown-preview-eww--process
+          (delete-process markdown-preview-eww--process))
+        (setq-local markdown-preview-eww--timer nil)
+        (setq-local markdown-preview-eww--process nil)
+        (setq-local markdown-preview-eww--buffer nil))
+    (let ((process-connection-type nil))
+      (setq-local markdown-preview-eww--process
+                  (start-process markdown-preview-eww-process-name nil
+                                 "ruby" "-e"
+                                 (markdown-preview-eww-convert-command
+                                  markdown-preview-eww-output-file-name))))
+    (setq-local markdown-preview-eww--timer
+                (run-with-idle-timer
+                 markdown-preview-eww-waiting-idling-second
+                 t 'markdown-preview-eww--do-convert))
+    (message (concat "eww markdown preview enabled. "
+                     "Run markdown-preview-eww again to disable."))))
 
 (provide 'markdown-preview-eww)
 ;;; markdown-preview-eww.el ends here

@@ -35,14 +35,26 @@
 
 ;;; Code:
 
-(defvar markdown-preview-eww-process-name "convert-from-md-to-html"
-  "Process name of a converter.")
+(defgroup markdown-preview-eww nil
+  "Provides realtime markdown preview by eww."
+  :group 'markdown
+  :link '(url-link :tag "markdown-preview-eww @ GitHub"
+                   "https://github.com/niku/markdown-preview-eww"))
 
-(defvar markdown-preview-eww-output-file-name "markdown-preview-eww-result.html"
-  "Filename of converted html.")
+(defcustom markdown-preview-eww-process-name "convert-from-md-to-html"
+  "Process name of a converter."
+  :group 'markdown-preview-eww
+  :type 'string)
 
-(defvar markdown-preview-eww-waiting-idling-second 1
-  "Seconds of convert waiting")
+(defcustom markdown-preview-eww-output-file-name "markdown-preview-eww-result.html"
+  "Filename of converted html."
+  :group 'markdown-preview-eww
+  :type 'string)
+
+(defcustom markdown-preview-eww-waiting-idling-second 1
+  "Seconds of convert waiting; a integer or floating point number."
+  :group 'markdown-preview-eww
+  :type 'number)
 
 (defun markdown-preview-eww-convert-command (output-file-name)
   (format "require \"redcarpet\"
